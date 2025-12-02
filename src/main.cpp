@@ -7,6 +7,11 @@
 #include <vector>
 #include <string>
 #include <limits>
+#include <csignal>
+#include <fstream>
+#include <chrono>
+#include <iomanip>
+#include <exception>
 
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_glfw.h"
@@ -19,8 +24,8 @@
 
 Player* g_player = nullptr;
 
-int g_windowWidth = 400;
-int g_windowHeight = 200;
+int g_windowWidth = 1200;
+int g_windowHeight = 800;
 float g_aspectRatio = 16.0f / 9.0f;
 
 bool g_showPauseMenu = false;
@@ -32,6 +37,82 @@ int g_selectedResolution = 0;
 
 bool g_debugHitbox = false;
 
+void WriteCrashLog(const char* reason)
+{
+    try {
+        auto now = std::chrono::system_clock::now();
+        std::time_t t = std::chrono::system_clock::to_time_t(now);
+
+        std::ofstream log("crash.log", std::ios::app);
+        if (log) {
+            log << "==================== CRASH ====================\n";
+            log << "Time: " << std::put_time(std::localtime(&t), "%Y-%m-%d %H:%M:%S") << "\n";
+            log << "Reason: " << (reason ? reason : "Unknown") << "\n";
+            log << "================================================\n\n";
+        }
+
+        std::cerr << "\n*** Application crashed ***\n"
+                  << "Reason: " << (reason ? reason : "Unknown") << "\n"
+                  << "See crash.log for details.\n";
+    } catch (...) {
+    }
+}
+
+void SignalHandler(int sig)
+{
+    const char* reason = nullptr;
+    switch (sig) {
+        case SIGSEGV: reason = "SIGSEGV (segmentation fault)"; break;
+        case SIGABRT: reason = "SIGABRT (abort)"; break;
+#ifdef SIGILL
+        case SIGILL:  reason = "SIGILL (illegal instruction)"; break;
+#endif
+#ifdef SIGFPE
+        case SIGFPE:  reason = "SIGFPE (floating point exception)"; break;
+#endif
+        default:      reason = "Unknown signal"; break;
+    }
+
+    WriteCrashLog(reason);
+    std::_Exit(EXIT_FAILURE);
+}
+
+void TerminateHandler()
+{
+    const char* reason = "std::terminate called (likely uncaught exception)";
+    try {
+        if (auto ex = std::current_exception()) {
+            try {
+                std::rethrow_exception(ex);
+            } catch (const std::exception& e) {
+                std::string msg = std::string("Uncaught exception: ") + e.what();
+                WriteCrashLog(msg.c_str());
+            } catch (...) {
+                WriteCrashLog("Uncaught non-std::exception");
+            }
+        } else {
+            WriteCrashLog(reason);
+        }
+    } catch (...) {
+        WriteCrashLog("Error while handling terminate");
+    }
+
+    std::_Exit(EXIT_FAILURE);
+}
+
+void InstallCrashHandlers()
+{
+    std::set_terminate(TerminateHandler);
+
+    std::signal(SIGABRT, SignalHandler);
+    std::signal(SIGSEGV, SignalHandler);
+#ifdef SIGILL
+    std::signal(SIGILL,  SignalHandler);
+#endif
+#ifdef SIGFPE
+    std::signal(SIGFPE,  SignalHandler);
+#endif
+}
 
 struct Resolution {
     int width;
@@ -296,6 +377,8 @@ void renderSettingsMenu(GLFWwindow* window) {
 
 
 int main(int argc, char* argv[]) {
+    InstallCrashHandlers();
+
     unsigned int seed = 0;
     if (argc > 1) {
         try {
@@ -427,10 +510,9 @@ int main(int argc, char* argv[]) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glm::mat4 view = player.getViewMatrix();
-        // Ensure aspect ratio is valid before creating projection matrix
         float safeAspect = g_aspectRatio;
         if (safeAspect <= 0.0f) {
-            safeAspect = 16.0f / 9.0f;  // Fallback to default aspect ratio
+            safeAspect = 16.0f / 9.0f;
         }
         glm::mat4 projection = glm::perspective(
             glm::radians(70.0f),

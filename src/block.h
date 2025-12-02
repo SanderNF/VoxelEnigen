@@ -6,7 +6,8 @@ enum BlockType {
     DIRT,
     STONE,
     WOOD,
-    LEAVES
+    LEAVES,
+    SNOW
 };
 
 enum class LogAxis {

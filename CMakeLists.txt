@@ -30,6 +30,7 @@ add_executable(app
         src/block.cpp
         src/world.cpp
         src/player.cpp
+        src/texture_atlas.cpp
         ${IMGUI_SOURCES}
 )
 

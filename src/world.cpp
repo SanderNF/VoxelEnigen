@@ -251,43 +251,41 @@ void generateTerrainForChunk(Chunk& chunk) {
 
             const float macroScale = 0.0012f;
             const float macroAmp   = 20.0f;
-            float macroN = perlin(worldX * macroScale, worldZ * macroScale);      // [-1,1]
-            float macroOffset = macroN * macroAmp;                                 // [-A, A]
+            float macroN = perlin(worldX * macroScale, worldZ * macroScale);
+            float macroOffset = macroN * macroAmp;
 
             const float regionScale = 0.0035f;
             const float regionAmp   = 6.0f;
-            float regionN = perlin(worldX * regionScale + 37.0f, worldZ * regionScale - 91.0f); // [-1,1]
+            float regionN = perlin(worldX * regionScale + 37.0f, worldZ * regionScale - 91.0f);
             float regionOffset = regionN * regionAmp;
 
             const float maskScale = 0.010f;
-            float maskRaw = perlin(worldX * maskScale + 200.0f, worldZ * maskScale + 200.0f); // [-1,1]
-            float mask01 = (maskRaw + 1.0f) * 0.5f;                                           // [0,1]
+            float maskRaw = perlin(worldX * maskScale + 200.0f, worldZ * maskScale + 200.0f);
+            float mask01 = (maskRaw + 1.0f) * 0.5f;
 
             const float maskThreshold = 0.62f;
             const float maskFeather   = 0.08f;
-            float hillMask = smoothstepf(maskThreshold, maskThreshold + maskFeather, mask01); // [0,1]
+            float hillMask = smoothstepf(maskThreshold, maskThreshold + maskFeather, mask01);
 
             const float detailScale = 0.05f;
             const float detailAmp   = 2.0f;
-            float detailN = perlin(worldX * detailScale - 120.0f, worldZ * detailScale + 53.0f); // [-1,1]
+            float detailN = perlin(worldX * detailScale - 120.0f, worldZ * detailScale + 53.0f);
             float detailOffset = detailN * detailAmp;
 
             const float hillScale = 0.07f;
             const float hillAmp   = 14.0f;
-            float hillN = perlin(worldX * hillScale + 777.0f, worldZ * hillScale - 333.0f); // [-1,1]
-            float hillOnlyUp = ((hillN + 1.0f) * 0.5f) * hillAmp;                           // [0, hillAmp]
-            float hillOffset = hillOnlyUp * hillMask;                                       // sparse strong hills
+            float hillN = perlin(worldX * hillScale + 777.0f, worldZ * hillScale - 333.0f);
+            float hillOnlyUp = ((hillN + 1.0f) * 0.5f) * hillAmp;
+            float hillOffset = hillOnlyUp * hillMask;
 
             int terrainHeight = int(baseHeight + macroOffset + regionOffset + detailOffset + hillOffset);
 
             if (terrainHeight >= (int)chunk.height) terrainHeight = chunk.height - 1;
 
-            // dirt depth
             float localVariationMag = std::fabs(detailOffset) + hillMask * 0.5f * hillAmp;
             int minDirt = 2;
             int maxDirt = 5;
             int dirtDepth = minDirt + int(clampf(localVariationMag / (hillAmp + detailAmp), 0.0f, 1.0f) * (maxDirt - minDirt));
-
 
             int stoneThreshold = int(baseHeight + macroOffset + regionAmp * 0.8f);
             if (terrainHeight > stoneThreshold) {
@@ -313,8 +311,10 @@ void generateTerrainForChunk(Chunk& chunk) {
 void generateTrees(Chunk& chunk, ChunkManager* manager) {
     std::set<std::pair<int,int>> modifiedChunks;
 
-    for (int x = 0; x < (int)chunk.width; x++) {
-        for (int z = 0; z < (int)chunk.depth; z++) {
+    const int margin = 3;
+
+    for (int x = margin; x < (int)chunk.width - margin; x++) {
+        for (int z = margin; z < (int)chunk.depth - margin; z++) {
             int worldX = chunk.chunkX * chunk.width + x;
             int worldZ = chunk.chunkZ * chunk.depth + z;
 
@@ -350,7 +350,7 @@ void generateTrees(Chunk& chunk, ChunkManager* manager) {
                         int cx = getChunkCoord((float)bx);
                         int cz = getChunkCoord((float)bz);
                         ManagedChunk* target = manager->getChunk(cx, cz);
-                        if (!target) continue;
+                        if (!target || !target->terrainGenerated) continue;
 
                         int localX = bx - cx * (int)target->chunk.width;
                         int localZ = bz - cz * (int)target->chunk.depth;
@@ -362,7 +362,7 @@ void generateTrees(Chunk& chunk, ChunkManager* manager) {
                 }
             }
 
-            int baseTopperY = y + actualTrunkHeight +1;
+            int baseTopperY = y + actualTrunkHeight + 1;
             for (int dy = 0; dy <= 1; ++dy) {
                 int by = baseTopperY + dy;
                 if (by < 0 || by >= (int)chunk.height) continue;
@@ -373,7 +373,7 @@ void generateTrees(Chunk& chunk, ChunkManager* manager) {
                     int cx = getChunkCoord((float)bx);
                     int cz = getChunkCoord((float)bz);
                     ManagedChunk* target = manager->getChunk(cx, cz);
-                    if (target) {
+                    if (target && target->terrainGenerated) {
                         int localX = bx - cx * (int)target->chunk.width;
                         int localZ = bz - cz * (int)target->chunk.depth;
                         BlockType current = target->chunk.getBlock(localX, by, localZ).type;
@@ -390,7 +390,7 @@ void generateTrees(Chunk& chunk, ChunkManager* manager) {
                     int cx = getChunkCoord((float)bx);
                     int cz = getChunkCoord((float)bz);
                     ManagedChunk* target = manager->getChunk(cx, cz);
-                    if (!target) continue;
+                    if (!target || !target->terrainGenerated) continue;
                     int localX = bx - cx * (int)target->chunk.width;
                     int localZ = bz - cz * (int)target->chunk.depth;
                     BlockType current = target->chunk.getBlock(localX, by, localZ).type;
@@ -476,37 +476,12 @@ void updateChunks(ChunkManager& manager, glm::vec3 pos, int radius, unsigned int
         }
     }
 
-    // STRUCTURE PASS
-    std::set<std::pair<int,int>> modifiedByStructures;
-    for (int dx = -radius; dx <= radius; dx++) {
-        for (int dz = -radius; dz <= radius; dz++) {
-            if (dx*dx + dz*dz > radius*radius) continue;
-            int cx = camChunkX + dx;
-            int cz = camChunkZ + dz;
-
-            ManagedChunk* mc = manager.getChunk(cx, cz);
-            if (!mc) continue;
-
-            if (mc->terrainGenerated && !mc->structuresGenerated) {
-                bool neighborsReady = true;
-                for (int nx = -1; nx <= 1; ++nx) {
-                    for (int nz = -1; nz <= 1; ++nz) {
-                        if (nx == 0 && nz == 0) continue;
-                        ManagedChunk* n = manager.getChunk(cx + nx, cz + nz);
-                        if (!n || !n->terrainGenerated || n->inTerrainQueue) {
-                            neighborsReady = false;
-                            break;
-                        }
-                    }
-                    if (!neighborsReady) break;
-                }
-
-                if (neighborsReady) {
-                    generateTrees(mc->chunk, &manager);
-                    mc->structuresGenerated = true;
-                    mc->meshDirty = true;
-                }
-            }
+    for (auto& pair : manager.chunks) {
+        ManagedChunk* mc = pair.second;
+        if (mc->terrainGenerated && !mc->structuresGenerated && !mc->inStructQueue) {
+            generateTrees(mc->chunk, &manager);
+            mc->structuresGenerated = true;
+            mc->meshDirty = true;
         }
     }
 

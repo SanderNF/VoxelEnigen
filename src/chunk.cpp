@@ -1,5 +1,6 @@
 #include "chunk.h"
 #include "world.h"
+#include "texture_atlas.h"
 
 float cubeFaces[6][30] = {
     // ---------- FRONT -Z ----------
@@ -82,15 +83,21 @@ void ChunkMesh::appendFaceWithAtlas(float face[30], int x, int y, int z, int chu
     float worldX = chunkX * chunkWidth + x;
     float worldZ = chunkZ * chunkDepth + z;
 
-    const float vScale = 1.0f / 6.0f;
-    float vOffset = getVOffset(block.type, faceIndex);
+    AtlasTexture tex = g_textureAtlas.getTexture(block.type, faceIndex);
+    const AtlasConfig& config = g_textureAtlas.getConfig();
+
+    float uScale = config.getUScale();
+    float vScale = config.getVScale();
+    float uOffset = g_textureAtlas.getUOffset(tex);
+    float vOffset = g_textureAtlas.getVOffset(tex);
 
     for (int i = 0; i < 6; ++i) {
         float u = face[i*5 + 3];
         float v = face[i*5 + 4];
 
+        // Handle log rotation for wood blocks
         if (block.type == WOOD) {
-            if (faceIndex < 4) {
+            if (faceIndex < 4) { // Side faces
                 if (block.axis == LogAxis::X) std::swap(u, v);
                 else if (block.axis == LogAxis::Z) u = 1.0f - u;
             }
@@ -99,7 +106,7 @@ void ChunkMesh::appendFaceWithAtlas(float face[30], int x, int y, int z, int chu
         vertices.push_back(face[i*5 + 0] + worldX);
         vertices.push_back(face[i*5 + 1] + y);
         vertices.push_back(face[i*5 + 2] + worldZ);
-        vertices.push_back(u);
+        vertices.push_back(u * uScale + uOffset);
         vertices.push_back(v * vScale + vOffset);
     }
 }

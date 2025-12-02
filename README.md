@@ -50,5 +50,8 @@ mingw32-make
 6. Handle DLL dependencies:
    If the executable doesn't run, copy these DLLs from your MSYS2 installation's /mingw64/bin folder to your /build folder:
 
-glew32.dll"
-glfw3.dll
+
+
+
+## dev note
+ 0-6 is FRONT, BACK, LEFT, RIGHT, BOTTOM, TOP
