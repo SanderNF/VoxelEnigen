@@ -50,7 +50,7 @@ ThreadPool& getThreadPool();
 extern CompletedMeshQueue g_completedMeshes;
 
 // Terrain generation
-void initPerlin();
+void initPerlin(unsigned int seed = 0);
 float perlin(float x, float y);
 float getTerrainHeight(int worldX, int worldZ);
 BiomeType getBiome(int worldX, int worldZ);

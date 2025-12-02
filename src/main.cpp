@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <limits>
 
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_glfw.h"
@@ -18,8 +19,8 @@
 
 Player* g_player = nullptr;
 
-int g_windowWidth = 1280;
-int g_windowHeight = 720;
+int g_windowWidth = 400;
+int g_windowHeight = 200;
 float g_aspectRatio = 16.0f / 9.0f;
 
 bool g_showPauseMenu = false;
@@ -40,9 +41,17 @@ struct Resolution {
 std::vector<Resolution> g_resolutions;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+    if (width <= 0) width = 1;
+    if (height <= 0) height = 1;
+
     g_windowWidth = width;
     g_windowHeight = height;
     g_aspectRatio = (float)width / (float)height;
+
+    const float minAspect = 0.1f;
+    const float maxAspect = 10.0f;
+    g_aspectRatio = glm::clamp(g_aspectRatio, minAspect, maxAspect);
+
     glViewport(0, 0, width, height);
 }
 
@@ -286,11 +295,25 @@ void renderSettingsMenu(GLFWwindow* window) {
 }
 
 
-int main() {
+int main(int argc, char* argv[]) {
+    unsigned int seed = 0;
+    if (argc > 1) {
+        try {
+            seed = std::stoul(argv[1]);
+        } catch (const std::exception& e) {
+            std::cerr << "Invalid seed provided, using random seed" << std::endl;
+            seed = static_cast<unsigned int>(std::time(nullptr));
+        }
+    } else {
+        seed = static_cast<unsigned int>(std::time(nullptr));
+    }
+
     if (!glfwInit()) {
-        std::cout << "Failed to initialize GLFW" << std::endl;
+        std::cerr << "Failed to initialize GLFW" << std::endl;
         return -1;
     }
+
+    std::cout << "Using world seed: " << seed << std::endl;
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -347,12 +370,12 @@ int main() {
         return -1;
     }
 
-    initPerlin();
+    initPerlin(seed);
     ChunkManager chunkManager;
     player.setActiveWorld(&chunkManager);
     player.setRaycastOriginOffset(glm::vec3(0.5f, 0.5f, 0.5f));
 
-    int renderDistance = 16;
+    int renderDistance = 8;
     updateChunks(chunkManager, player.position, renderDistance, renderer.getShaderProgram());
 
     float deltaTime = 0.0f;
@@ -404,9 +427,14 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glm::mat4 view = player.getViewMatrix();
+        // Ensure aspect ratio is valid before creating projection matrix
+        float safeAspect = g_aspectRatio;
+        if (safeAspect <= 0.0f) {
+            safeAspect = 16.0f / 9.0f;  // Fallback to default aspect ratio
+        }
         glm::mat4 projection = glm::perspective(
             glm::radians(70.0f),
-            g_aspectRatio,
+            safeAspect,
             0.1f,
             500.0f
         );
@@ -475,5 +503,10 @@ int main() {
     ImGui::DestroyContext();
 
     glfwTerminate();
+
+    std::cout << "\nPress Enter to close...";
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
     return 0;
 }
+

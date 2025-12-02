@@ -13,7 +13,7 @@ A voxel-based engine built from scratch in C++ and OpenGL. Features procedurally
 ## features
 
 ## screenshots
-
+![Screenshot.png](Screenshot.png)
 ## build instructions
 ### Prerequisites
 you need a c++ compiler.
@@ -28,7 +28,7 @@ windows (MSYS2)
 ````
 pacman -S mingw-w64-x86_64-glew mingw-w64-x86_64-glfw mingw-w64-x86_64-cmake
 pacman -S mingw-w64-x86_64-toolchain
-````[stb_image.h](src/stbimage/stb_image.h)
+````
 3. close the repository:
 ````bash
 git clone https://github.com/mathiassol/VoxelEnigen.git

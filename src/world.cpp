@@ -104,12 +104,13 @@ CompletedMeshQueue g_completedMeshes;
 
 int perm[512];
 
-void initPerlin() {
+void initPerlin(unsigned int seed) {
+    std::srand(seed);
     std::vector<int> p(256);
     for (int i = 0; i < 256; i++) p[i] = i;
 
     for (int i = 255; i > 0; i--) {
-        int j = rand() % (i + 1);
+        int j = std::rand() % (i + 1);
         std::swap(p[i], p[j]);
     }
 
@@ -411,7 +412,6 @@ void generateTrees(Chunk& chunk, ChunkManager* manager) {
 }
 
 void updateChunks(ChunkManager& manager, glm::vec3 pos, int radius, unsigned int shader) {
-    // Process completed terrain generation
     while (true) {
         CompletedTerrain t;
         if (!g_completedTerrain.try_pop(t)) break;
@@ -441,7 +441,6 @@ void updateChunks(ChunkManager& manager, glm::vec3 pos, int radius, unsigned int
     std::vector<std::pair<int,int>> toRemove;
     for (auto& pair : manager.chunks) {
         if (shouldExist.find(pair.first) == shouldExist.end()) {
-            // Do not remove chunks that are currently being processed
             if (!pair.second->inTerrainQueue && !pair.second->inMeshQueue) {
                 toRemove.push_back(pair.first);
             }
@@ -515,10 +514,8 @@ void updateChunks(ChunkManager& manager, glm::vec3 pos, int radius, unsigned int
     for (auto& p : shouldExist) {
         auto mc = manager.getChunk(p.first, p.second);
         if (!mc) continue;
-        
-        // Only mesh if terrain is ready
+
         if (!mc->terrainGenerated) continue;
-        // Ideally wait for structures too, to avoid double-meshing pop-in
         if (!mc->structuresGenerated) continue;
 
         if ((!mc->meshUploaded || mc->meshDirty) && !mc->inMeshQueue) {
