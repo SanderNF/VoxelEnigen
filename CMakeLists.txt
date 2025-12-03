@@ -35,7 +35,6 @@ add_executable(app
         ${IMGUI_SOURCES}
 )
 
-
 target_link_libraries(app
         OpenGL32
         glew32

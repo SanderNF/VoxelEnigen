@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FPS Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .chart-container { width: 90%; margin: 0 auto; }
+        #fpsChart { margin-top: 20px; }
+        .stats { display: flex; justify-content: space-around; margin: 20px 0; }
+        .stat { text-align: center; }
+        .stat-value { font-size: 24px; font-weight: bold; }
+    </style>
+</head>
+<body>
+<h1>FPS Monitor</h1>
+
+<div class="chart-container">
+    <div class="controls">
+        <button id="refreshBtn">Refresh Data</button>
+        <button id="clearBtn">Clear Data</button>
+    </div>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-value" id="currentFps">-</div>
+            <div>Current FPS</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="avgFps">-</div>
+            <div>Average</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="minFps">-</div>
+            <div>Min</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="maxFps">-</div>
+            <div>Max</div>
+        </div>
+    </div>
+
+    <canvas id="fpsChart"></canvas>
+</div>
+
+<script>
+    let chart;
+
+    // Initialize chart
+    function initChart() {
+        const ctx = document.getElementById('fpsChart').getContext('2d');
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'FPS',
+                    data: [],
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    }
+
+    // Fetch data from server
+    async function fetchData() {
+        try {
+            const response = await fetch('http://127.0.0.1:8001/chart-data');
+            const data = await response.json();
+            updateChart(data);
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    // Update chart with new data
+    function updateChart(data) {
+        if (!chart) return;
+
+        // Update chart data
+        chart.data.labels = data.timestamps.map(ts => new Date(ts).toLocaleTimeString());
+        chart.data.datasets[0].data = data.values;
+
+        // Update stats
+        document.getElementById('currentFps').textContent =
+            data.values.length > 0 ? data.values[data.values.length - 1].toFixed(1) : '-';
+        document.getElementById('avgFps').textContent =
+            data.stats.avg ? data.stats.avg.toFixed(1) : '-';
+        document.getElementById('minFps').textContent =
+            data.stats.min ? data.stats.min.toFixed(1) : '-';
+        document.getElementById('maxFps').textContent =
+            data.stats.max ? data.stats.max.toFixed(1) : '-';
+
+        chart.update();
+    }
+
+    // Clear all data
+    async function clearData() {
+        if (!confirm('Are you sure you want to clear all data?')) return;
+
+        try {
+            const response = await fetch('http://127.0.0.1:8001/clear-data', {
+                method: 'POST'
+            });
+
+            if (response.ok) {
+                fetchData();
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', () => {
+        initChart();
+        fetchData();
+
+        // Refresh button
+        document.getElementById('refreshBtn').addEventListener('click', fetchData);
+
+        // Clear button
+        document.getElementById('clearBtn').addEventListener('click', clearData);
+
+        // Auto-refresh every 2 seconds
+        setInterval(fetchData, 2000);
+    });
+</script>
+</body>
+</html>
