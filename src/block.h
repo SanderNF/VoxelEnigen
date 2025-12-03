@@ -5,6 +5,10 @@ enum BlockType {
     GRASS,
     DIRT,
     STONE,
+    ANDESITE,
+    DIORITE,
+    GRANITE,
+    TUFF,
     WOOD,
     LEAVES,
     SNOW

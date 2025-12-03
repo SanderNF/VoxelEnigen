@@ -1,4 +1,5 @@
 #include "world.h"
+#include "SimplexNoise.h"
 #include <cmath>
 #include <cstdlib>
 #include <vector>
@@ -9,8 +10,7 @@
 #include <condition_variable>
 #include <atomic>
 #include <functional>
-#include<cmath>
-
+#include <cmath>
 // Async
 class ThreadPool {
 public:
@@ -142,6 +142,14 @@ float grad(int hash, float x, float y) {
     return ((h & 1) ? -u : u) + ((h & 2) ? -2.0f*v : 2.0f*v);
 }
 
+float grad3(int hash, float x, float y, float z) {
+    int h = hash & 15;
+    float u = h < 8 ? x : y;
+    float v = h < 4 ? y : (h == 12 || h == 14 ? x : z);
+    return ((h & 1) ? -u : u) + ((h & 2) ? -v : v);
+}
+
+
 float perlin(float x, float y) {
     int X = (int)floor(x) & 255;
     int Y = (int)floor(y) & 255;
@@ -166,6 +174,46 @@ float perlin(float x, float y) {
     return res;
 }
 
+float perlin3(float x, float y, float z) {
+    int X = (int)floor(x) & 255;
+    int Y = (int)floor(y) & 255;
+    int Z = (int)floor(z) & 255;
+
+    x -= floor(x);
+    y -= floor(y);
+    z -= floor(z);
+
+    float u = fade(x);
+    float v = fade(y);
+    float w = fade(z);
+
+    int A  = perm[X] + Y;
+    int AA = perm[A] + Z;
+    int AB = perm[A + 1] + Z;
+
+    int B  = perm[X + 1] + Y;
+    int BA = perm[B] + Z;
+    int BB = perm[B + 1] + Z;
+
+    float res =
+        lerp(
+            lerp(
+                lerp(grad3(perm[AA], x,     y,     z),
+                     grad3(perm[BA], x-1.0, y,     z), u),
+                lerp(grad3(perm[AB], x,     y-1.0, z),
+                     grad3(perm[BB], x-1.0, y-1.0, z), u),
+                v),
+            lerp(
+                lerp(grad3(perm[AA+1], x,     y,     z-1.0),
+                     grad3(perm[BA+1], x-1.0, y,     z-1.0), u),
+                lerp(grad3(perm[AB+1], x,     y-1.0, z-1.0),
+                     grad3(perm[BB+1], x-1.0, y-1.0, z-1.0), u),
+                v),
+            w);
+
+    return res;
+}
+
 float getTerrainHeight(int worldX, int worldZ) {
     float scale = 0.05f;
     float amplitude = 10.0f;
@@ -186,6 +234,51 @@ float getMountOffset(int worldX, int worldZ) {
     }
     return Offset;
 }
+
+// Simple 32-bit integer hash
+static uint32_t hash32(uint32_t x) {
+    x ^= x >> 16;
+    x *= 0x7FEB352D;
+    x ^= x >> 15;
+    x *= 0x846CA68B;
+    x ^= x >> 16;
+    return x;
+}
+
+struct NoiseOffset {
+    float ox, oy, oz;
+};
+
+// Generates unique offsets for x,y,z.
+// seed is your world seed.
+NoiseOffset makeNoiseOffset(uint32_t seed) {
+    uint32_t hx = hash32(seed * 73856093u);
+    uint32_t hy = hash32(seed * 19349663u);
+    uint32_t hz = hash32(seed * 83492791u);
+
+    NoiseOffset o;
+    o.ox = float(hx & 0xFFFF) * 0.1f;  // scale to a float range
+    o.oy = float(hy & 0xFFFF) * 0.1f;
+    o.oz = float(hz & 0xFFFF) * 0.1f;
+    return o;
+}
+
+
+bool blockNoise(
+    float worldX, float worldY, float worldZ,
+    float scale, float mask,
+    const NoiseOffset& off
+) {
+    float n = perlin3(
+        worldX * scale + off.ox,
+        worldY * scale + off.oy,
+        worldZ * scale + off.oz
+    );
+
+    return n > mask;
+}
+
+
 
 BiomeType getBiome(int worldX, int worldZ) {
     if (getMountOffset(worldX, worldZ) != 0.0f) {
@@ -324,21 +417,58 @@ void generateTerrainForChunk(Chunk& chunk) {
 
             if (dirtDepth > terrainHeight) dirtDepth = terrainHeight;
 
+            uint32_t blockSeed = 1234567;
+
+            NoiseOffset graniteOffset = makeNoiseOffset(blockSeed + 10);
+            NoiseOffset dioriteOffset = makeNoiseOffset(blockSeed + 20);
+            NoiseOffset andesiteOffset = makeNoiseOffset(blockSeed + 30);
+            NoiseOffset tuffOffset    = makeNoiseOffset(blockSeed + 40);
+
             for (int y = 0; y < (int)chunk.height; y++) {
                 if (y > terrainHeight)
                     chunk.setBlock(x, y, z, AIR);
-                else if (mountOffset > 0.0f)
+
+                else if (mountOffset > 0.0f) {
                     if (y == terrainHeight)
                         chunk.setBlock(x, y, z, DIRT);
+
+                    else if (blockNoise(x, y, z, 0.05f, 0.4f, graniteOffset))
+                        chunk.setBlock(x, y, z, GRANITE);
+
+                    else if (blockNoise(x, y, z, 0.05f, 0.4f, andesiteOffset))
+                        chunk.setBlock(x, y, z, ANDESITE);
+
+                    else if (blockNoise(x, y, z, 0.05f, 0.4f, tuffOffset))
+                        chunk.setBlock(x, y, z, TUFF);
+
+                    else if (blockNoise(x, y, z, 0.05f, 0.4f, dioriteOffset))
+                        chunk.setBlock(x, y, z, DIORITE);
+
                     else
                         chunk.setBlock(x, y, z, STONE);
+                }
+
                 else if (y == terrainHeight)
                     chunk.setBlock(x, y, z, GRASS);
+
                 else if (y >= terrainHeight - dirtDepth)
                     chunk.setBlock(x, y, z, DIRT);
+
+                else if (blockNoise(x, y, z, 0.05f, 0.4f, graniteOffset))
+                    chunk.setBlock(x, y, z, GRANITE);
+
+                else if (blockNoise(x, y, z, 0.05f, 0.4f, andesiteOffset))
+                    chunk.setBlock(x, y, z, ANDESITE);
+
+                else if (blockNoise(x, y, z, 0.05f, 0.4f, tuffOffset))
+                    chunk.setBlock(x, y, z, TUFF);
+
+                else if (blockNoise(x, y, z, 0.05f, 0.4f, dioriteOffset))
+                    chunk.setBlock(x, y, z, DIORITE);
+                
                 else
                     chunk.setBlock(x, y, z, STONE);
-            }
+        }
         }
     }
 }

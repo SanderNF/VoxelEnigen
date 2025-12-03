@@ -5,7 +5,7 @@
 
 struct AtlasConfig {
     int columns = 1;
-    int rows = 7;
+    int rows = 11;
 
     float getUScale() const { return 1.0f / columns; }
     float getVScale() const { return 1.0f / rows; }

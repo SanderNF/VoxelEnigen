@@ -122,7 +122,7 @@ void Player::update(float deltaTime, ChunkManager* world) {
 
 // Interaction
 const std::vector<BlockType>& Player::blockList() {
-    static const std::vector<BlockType> list = { AIR, GRASS, DIRT, STONE, WOOD, LEAVES, SNOW};
+    static const std::vector<BlockType> list = { AIR, GRASS, DIRT, STONE, ANDESITE, DIORITE, GRANITE, TUFF, WOOD, LEAVES, SNOW};
     return list;
 }
 
@@ -132,6 +132,10 @@ const char* Player::blockName(BlockType t) {
         case GRASS: return "Grass";
         case DIRT: return "Dirt";
         case STONE: return "Stone";
+        case ANDESITE: return "Andesite";
+        case DIORITE: return "Diorite";
+        case GRANITE: return "Granite";
+        case TUFF: return "Tuff";
         case WOOD: return "Wood";
         case LEAVES: return "Leaves";
         case SNOW: return "Snow";

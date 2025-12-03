@@ -1,5 +1,6 @@
 #pragma once
 #include "chunk.h"
+#include "SimplexNoise.h"
 #include <unordered_map>
 #include <set>
 #include <vector>

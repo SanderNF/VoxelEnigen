@@ -8,36 +8,52 @@ TextureAtlas::TextureAtlas() {
 
 void TextureAtlas::initializeTextures() {
 
-    blockTextures[GRASS][0] = AtlasTexture(0, 5);
-    blockTextures[GRASS][1] = AtlasTexture(0, 5);
-    blockTextures[GRASS][2] = AtlasTexture(0, 5);
-    blockTextures[GRASS][3] = AtlasTexture(0, 5);
-    blockTextures[GRASS][4] = AtlasTexture(0, 5);
-    blockTextures[GRASS][5] = AtlasTexture(0, 6);
+    blockTextures[GRASS][0] = AtlasTexture(0, 9);
+    blockTextures[GRASS][1] = AtlasTexture(0, 9);
+    blockTextures[GRASS][2] = AtlasTexture(0, 9);
+    blockTextures[GRASS][3] = AtlasTexture(0, 9);
+    blockTextures[GRASS][4] = AtlasTexture(0, 9);
+    blockTextures[GRASS][5] = AtlasTexture(0, 10);
 
     for (int i = 0; i < 6; i++) {
-        blockTextures[DIRT][i] = AtlasTexture(0, 5);
+        blockTextures[DIRT][i] = AtlasTexture(0, 9);
     }
 
     for (int i = 0; i < 6; i++) {
-        blockTextures[STONE][i] = AtlasTexture(0, 4);
+        blockTextures[STONE][i] = AtlasTexture(0, 8);
     }
 
     for (int i = 0; i < 6; i++) {
-        blockTextures[SNOW][i] = AtlasTexture(0, 0);
+        blockTextures[ANDESITE][i] = AtlasTexture(0, 3);
     }
 
-    blockTextures[WOOD][0] = AtlasTexture(0, 3);
-    blockTextures[WOOD][1] = AtlasTexture(0, 3);
-    blockTextures[WOOD][2] = AtlasTexture(0, 3);
-    blockTextures[WOOD][3] = AtlasTexture(0, 3);
-    blockTextures[WOOD][4] = AtlasTexture(0, 2);
-    blockTextures[WOOD][5] = AtlasTexture(0, 2);
+    for (int i = 0; i < 6; i++) {
+        blockTextures[DIORITE][i] = AtlasTexture(0, 2);
+    }
+
+    for (int i = 0; i < 6; i++) {
+        blockTextures[GRANITE][i] = AtlasTexture(0, 1);
+    }
+
+    for (int i = 0; i < 6; i++) {
+        blockTextures[TUFF][i] = AtlasTexture(0, 0);
+    }
+
+    for (int i = 0; i < 6; i++) {
+        blockTextures[SNOW][i] = AtlasTexture(0, 4);
+    }
+
+    blockTextures[WOOD][0] = AtlasTexture(0, 7);
+    blockTextures[WOOD][1] = AtlasTexture(0, 7);
+    blockTextures[WOOD][2] = AtlasTexture(0, 7);
+    blockTextures[WOOD][3] = AtlasTexture(0, 7);
+    blockTextures[WOOD][4] = AtlasTexture(0, 6);
+    blockTextures[WOOD][5] = AtlasTexture(0, 6);
 
 
 
     for (int i = 0; i < 6; i++) {
-        blockTextures[LEAVES][i] = AtlasTexture(0, 1);
+        blockTextures[LEAVES][i] = AtlasTexture(0, 5);
     }
 
     for (int i = 0; i < 6; i++) {
