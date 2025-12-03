@@ -26,7 +26,7 @@ windows (MSYS2)
 1. install msys2 from https://www.msys2.org/
 2. open msys2 MINGW64(recomended) and install the packages:
 ````
-pacman -S mingw-w64-x86_64-glew mingw-w64-x86_64-glfw mingw-w64-x86_64-cmake
+pacman -S mingw-w64-x86_64-glew mingw-w64-x86_64-glfw mingw-w64-x86_64-cmake mingw-w64-x86_64-glm
 pacman -S mingw-w64-x86_64-toolchain
 ````
 3. add "C:\msys64\mingw64\bin" to path
