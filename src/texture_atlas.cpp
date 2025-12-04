@@ -8,19 +8,31 @@ TextureAtlas::TextureAtlas() {
 
 void TextureAtlas::initializeTextures() {
 
-    blockTextures[GRASS][0] = AtlasTexture(0, 9);
-    blockTextures[GRASS][1] = AtlasTexture(0, 9);
-    blockTextures[GRASS][2] = AtlasTexture(0, 9);
-    blockTextures[GRASS][3] = AtlasTexture(0, 9);
+    blockTextures[GRASS][0] = AtlasTexture(0, 11);
+    blockTextures[GRASS][1] = AtlasTexture(0, 11);
+    blockTextures[GRASS][2] = AtlasTexture(0, 11);
+    blockTextures[GRASS][3] = AtlasTexture(0, 11);
     blockTextures[GRASS][4] = AtlasTexture(0, 9);
-    blockTextures[GRASS][5] = AtlasTexture(0, 10);
+    blockTextures[GRASS][5] = AtlasTexture(0, 12);
 
     for (int i = 0; i < 6; i++) {
         blockTextures[DIRT][i] = AtlasTexture(0, 9);
     }
 
     for (int i = 0; i < 6; i++) {
+        blockTextures[COARSE_DIRT][i] = AtlasTexture(0, 10);
+    }
+
+    for (int i = 0; i < 6; i++) {
+        blockTextures[GRAVEL][i] = AtlasTexture(0, 15);
+    }
+
+    for (int i = 0; i < 6; i++) {
         blockTextures[STONE][i] = AtlasTexture(0, 8);
+    }
+
+    for (int i = 0; i < 6; i++) {
+        blockTextures[COBBLE_STONE][i] = AtlasTexture(0, 13);
     }
 
     for (int i = 0; i < 6; i++) {
@@ -37,6 +49,10 @@ void TextureAtlas::initializeTextures() {
 
     for (int i = 0; i < 6; i++) {
         blockTextures[TUFF][i] = AtlasTexture(0, 0);
+    }
+
+    for (int i = 0; i < 6; i++) {
+        blockTextures[BRICK][i] = AtlasTexture(0, 14);
     }
 
     for (int i = 0; i < 6; i++) {

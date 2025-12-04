@@ -429,7 +429,7 @@ void generateTerrainForChunk(Chunk& chunk) {
 
                 else if (mountOffset > 0.0f) {
                     if (y == terrainHeight)
-                        chunk.setBlock(x, y, z, DIRT);
+                        chunk.setBlock(x, y, z, COARSE_DIRT);
 
                     else if (blockNoise(worldX, y, worldZ, 0.05f, 0.4f, graniteOffset))
                         chunk.setBlock(x, y, z, GRANITE);
