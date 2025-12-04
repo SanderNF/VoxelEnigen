@@ -3,12 +3,15 @@
 #include "stbimage/stb_image.h"
 #include <iostream>
 
+
 const char* vertexShaderSrc = R"(
 #version 330 core
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec2 aUV;
+layout (location = 2) in vec3 aNormal;
 
 out vec2 TexCoord;
+out vec3 Normal;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -17,6 +20,7 @@ uniform mat4 projection;
 void main() {
     gl_Position = projection * view * model * vec4(aPos, 1.0);
     TexCoord = aUV;
+    Normal = mat3(transpose(inverse(model))) * aNormal; // transform normal to world space
 }
 )";
 
@@ -25,12 +29,26 @@ const char* fragmentShaderSrc = R"(
 out vec4 FragColor;
 
 in vec2 TexCoord;
+in vec3 Normal;
+
 uniform sampler2D tex0;
+uniform vec3 lightDir;       // set from C++ once
+uniform vec3 lightColor;     // set from C++
+uniform vec3 ambientColor;   // set from C++
 
 void main() {
-    FragColor = texture(tex0, TexCoord);
+    vec3 norm = normalize(Normal);
+    float diff = max(dot(norm, -lightDir), 0.0);
+
+    vec3 texColor = texture(tex0, TexCoord).rgb;
+
+    // combine diffuse + ambient
+    vec3 result = ambientColor * texColor + diff * lightColor * texColor;
+
+    FragColor = vec4(result, 1.0);
 }
 )";
+
 
 Renderer::Renderer() : shaderProgram(0), atlasTexture(0) {
 }
@@ -52,8 +70,29 @@ bool Renderer::initialize() {
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
+    // --- Set fixed sun ---
+    glUseProgram(shaderProgram);
+
+    GLint lightDirLoc     = glGetUniformLocation(shaderProgram, "lightDir");
+    GLint lightColorLoc   = glGetUniformLocation(shaderProgram, "lightColor");
+    GLint ambientColorLoc = glGetUniformLocation(shaderProgram, "ambientColor");
+
+    // Fixed sun direction (from sun to scene)
+    float sunDir[3] = { 0.5f, 1.0f, 0.3f };
+    float len = std::sqrt(sunDir[0]*sunDir[0] + sunDir[1]*sunDir[1] + sunDir[2]*sunDir[2]);
+    sunDir[0] /= len;
+    sunDir[1] /= len;
+    sunDir[2] /= len;
+    glUniform3f(lightDirLoc, sunDir[0], sunDir[1], sunDir[2]);
+
+    // Light colors
+    glUniform3f(lightColorLoc, 1.0f, 1.0f, 1.0f);      // white sunlight
+    glUniform3f(ambientColorLoc, 0.4f, 0.4f, 0.5f);    // soft ambient for blocks and sky
+
     return true;
 }
+
+
 
 unsigned int Renderer::compileShader(unsigned int type, const char* src) {
     unsigned int shader = glCreateShader(type);
